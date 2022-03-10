@@ -1,0 +1,285 @@
+DROP TABLE uzivatel CASCADE CONSTRAINTS;
+DROP TABLE hodnoceni_ridice CASCADE CONSTRAINTS;
+DROP TABLE hodnoceni_spolucestujiciho CASCADE CONSTRAINTS;
+DROP TABLE automobil CASCADE CONSTRAINTS;
+DROP TABLE spolujizda CASCADE CONSTRAINTS;
+DROP TABLE clanek CASCADE CONSTRAINTS;
+DROP TABLE opravneni CASCADE CONSTRAINTS;
+DROP TABLE vlog CASCADE CONSTRAINTS;
+DROP TABLE vylet CASCADE CONSTRAINTS;
+DROP TABLE aktivita CASCADE CONSTRAINTS;
+DROP TABLE obsahuje CASCADE CONSTRAINTS;
+DROP TABLE misto CASCADE CONSTRAINTS;
+DROP TABLE stat CASCADE CONSTRAINTS;
+DROP TABLE vybaveni CASCADE CONSTRAINTS;
+DROP TABLE predpoklada CASCADE CONSTRAINTS;
+DROP TABLE ucastni CASCADE CONSTRAINTS;
+DROP TABLE zastavka CASCADE CONSTRAINTS;
+DROP TABLE ridi CASCADE CONSTRAINTS;
+DROP TABLE navstivi CASCADE CONSTRAINTS;
+DROP TABLE pojede CASCADE CONSTRAINTS;
+
+--TODO datove typy
+
+CREATE TABLE automobil (
+    registracni_znacka varchar(255),
+    --Znacka varchar (255),
+    --Model varchar (255),
+    --Kapacita int
+    CONSTRAINT PK_automobil PRIMARY KEY (registracni_znacka)
+);
+
+CREATE TABLE vylet (
+    id_vylet int,
+    --PopisProgramu varchar(255),
+    --Ubytovani varchar(255),
+    --Naklady int,
+    --Narocnost int
+    CONSTRAINT PK_vylet PRIMARY KEY (id_vylet)--,
+ --   CONSTRAINT FK_vylet_id_uzivatel FOREIGN KEY (id_uzivatel)
+ --       REFERENCES uzivatel
+ --       ON DELETE CASCADE
+);
+
+CREATE TABLE spolujizda (
+    id_spolujizda int,
+    registracni_znacka varchar(255) CONSTRAINT spolujizda_registracni_znacka_nn NOT NULL,
+    id_vylet int CONSTRAINT spolujizda_id_vylet_nn  NOT NULL,
+    --CasVyjezdu varchar(255),
+    --NastupniMisto varchar(255),
+    --VystupniMisto varchar(255),
+    --Cena int,
+    --Zajizdka varchar(255),
+    --CasovaFlexibilita varchar(255),
+    --Zavazadla number(1,0)
+    CONSTRAINT PK_spolujizda PRIMARY KEY (id_spolujizda),
+    CONSTRAINT FK_spolujizda_registracni_znacka FOREIGN KEY (registracni_znacka)
+        REFERENCES automobil
+        ON DELETE CASCADE,
+    CONSTRAINT FK_spolujizda_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE
+);
+
+CREATE TABLE zastavka (
+    id_zastavka int,
+    id_spolujizda int CONSTRAINT zastavka_id_spolujizda_nn NOT NULL,
+    CONSTRAINT PK_zastavka PRIMARY KEY (id_zastavka),
+    CONSTRAINT FK_zastavka_id_spolujizda FOREIGN KEY (id_spolujizda)
+        REFERENCES spolujizda
+        ON DELETE CASCADE
+);
+
+CREATE TABLE uzivatel (
+    id_uzivatel int,
+    id_zastavka int CONSTRAINT uzivatel_id_zastavka_nn  NOT NULL,
+    id_zastavka_2 int CONSTRAINT uzivatel_id_zastavka_2_nn  NOT NULL,
+    --Email varchar(255),
+    --Telefon varchar(255),
+    --Popis varchar(255),
+    --CestaKSouboruFotografie varchar(255),
+    --Hudba number(1,0),
+    --Kouření number(1,0), 
+    --Zvířata number(1,0), 
+    --Komunikace varchar(255),
+    --Zkušenost int
+    CONSTRAINT PK_uzivatel PRIMARY KEY (id_uzivatel),
+    CONSTRAINT FK_uzivatel_id_zastavka FOREIGN KEY (id_zastavka)
+        REFERENCES zastavka
+        ON DELETE CASCADE,
+    CONSTRAINT FK_uzivatel_id_zastavka_2 FOREIGN KEY (id_zastavka_2)
+        REFERENCES zastavka
+        ON DELETE CASCADE
+);
+
+ALTER TABLE spolujizda ADD (
+    id_uzivatel int CONSTRAINT spolujizda_id_uzivatel_nn NOT NULL,
+    CONSTRAINT FK_spolujizda_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE
+    );
+
+ALTER TABLE vylet ADD (
+    id_uzivatel int CONSTRAINT vylet_id_uzivatel_nn NOT NULL,
+    CONSTRAINT FK_vylet_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE
+    );
+
+CREATE TABLE ridi (
+    id_ridi int,
+    id_uzivatel int CONSTRAINT ridi_id_uzivatel_nn NOT NULL,
+    registracni_znacka varchar(255) CONSTRAINT ridi_registracni_znacka_nn NOT NULL,
+    CONSTRAINT PK_ridi PRIMARY KEY (id_ridi),
+    CONSTRAINT FK_ridi_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_ridi_registracni_znacka FOREIGN KEY (registracni_znacka)
+        REFERENCES automobil
+        ON DELETE CASCADE
+);
+
+CREATE TABLE ucastni (
+    id_ucastni int,
+    id_uzivatel int CONSTRAINT ucastni_id_uzivatel_nn  NOT NULL,
+    id_spolujizda int CONSTRAINT ucastni_id_spolujizda_nn NOT NULL,
+    CONSTRAINT PK_ucastni PRIMARY KEY (id_ucastni),
+    CONSTRAINT FK_ucastni_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_ucastni_id_spolujizda FOREIGN KEY (id_spolujizda)
+        REFERENCES spolujizda
+        ON DELETE CASCADE
+);
+
+CREATE TABLE pojede (
+    id_pojede int,
+    id_uzivatel int CONSTRAINT pojede_id_uzivatel_nn  NOT NULL,
+    id_vylet int CONSTRAINT pojede_id_vylet_nn NOT NULL,
+    CONSTRAINT PK_pojede PRIMARY KEY (id_pojede),
+    CONSTRAINT FK_pojede_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_pojede_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE
+);
+
+CREATE TABLE hodnoceni_ridice (
+    id_hodnoceni_ridice int,
+    id_uzivatel int CONSTRAINT hodnoceni_ridice_id_uzivatel_nn  NOT NULL,
+    id_uzivatel_2 int CONSTRAINT hodnoceni_ridice_id_uzivatel_2_nn  NOT NULL,
+    --Obsah varchar(255),
+    --PocetHvezdicek int
+    CONSTRAINT PK_hodnoceni_ridice PRIMARY KEY (id_hodnoceni_ridice),
+    CONSTRAINT FK_hodnoceni_ridice_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_hodnoceni_ridice_id_uzivatel_2 FOREIGN KEY (id_uzivatel_2)
+        REFERENCES uzivatel
+        ON DELETE CASCADE
+);
+
+CREATE TABLE hodnoceni_spolucestujiciho (
+    id_hodnoceni_spolucestujiciho int,
+    id_uzivatel int CONSTRAINT hodnoceni_spolucestujiciho_id_uzivatel_nn  NOT NULL,
+    id_uzivatel_2 int CONSTRAINT hodnoceni_spolucestujiciho_id_uzivatel_2_nn  NOT NULL,
+    --Obsah varchar(255),
+    --Spokojenost int,
+    --Dochvilnost int,
+    --Pratelstvi int
+    CONSTRAINT PK_hodnoceni_spolucestujiciho PRIMARY KEY (id_hodnoceni_spolucestujiciho),
+    CONSTRAINT FK_hodnoceni_spolucestujiciho_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_hodnoceni_spolucestujiciho_id_uzivatel_2 FOREIGN KEY (id_uzivatel_2)
+        REFERENCES uzivatel
+        ON DELETE CASCADE
+);
+
+----------------------------------------------------------------------
+
+
+CREATE TABLE opravneni (
+    id_opravneni int,
+    --Typ int
+    CONSTRAINT PK_opravneni PRIMARY KEY (id_opravneni)
+);
+
+CREATE TABLE clanek (
+    id_clanek int,
+    id_uzivatel int CONSTRAINT clanek_id_uzivatel_nn  NOT NULL,
+    id_opravneni int CONSTRAINT clanek_id_opravneni_nn  NOT NULL,
+    --Obsah varchar(255)
+    CONSTRAINT PK_clanek PRIMARY KEY (id_clanek),
+    CONSTRAINT FK_clanek_id_uzivatel FOREIGN KEY (id_uzivatel)
+        REFERENCES uzivatel
+        ON DELETE CASCADE,
+    CONSTRAINT FK_clanek_id_opravneni FOREIGN KEY (id_opravneni)
+        REFERENCES opravneni
+        ON DELETE CASCADE
+);
+
+CREATE TABLE vlog (
+    id_vlog int,
+    id_opravneni int CONSTRAINT vlog_id_opravneni_nn  NOT NULL,
+    id_vylet int CONSTRAINT vlog_id_vylet_nn  NOT NULL,
+    --Popis varchar(255),
+    --CestaKSouboruVidea varchar(255)
+    CONSTRAINT PK_vlog PRIMARY KEY (id_vlog),
+    CONSTRAINT FK_vlog_id_opravneni FOREIGN KEY (id_opravneni)
+        REFERENCES opravneni
+        ON DELETE CASCADE,
+    CONSTRAINT FK_vlog_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE
+);
+
+CREATE TABLE aktivita (
+    id_aktivita int,
+    --Nazev varchar(255),
+    --Druh varchar(255)
+    CONSTRAINT PK_aktivita PRIMARY KEY (id_aktivita)
+);
+
+CREATE TABLE obsahuje (
+    id_obsahuje int,
+    id_vylet int CONSTRAINT obsahuje_id_vylet_nn  NOT NULL,
+    id_aktivita int CONSTRAINT obsahuje_id_aktivita_nn  NOT NULL,
+    CONSTRAINT PK_obsahuje PRIMARY KEY (id_obsahuje),
+    CONSTRAINT FK_obsahuje_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE,
+    CONSTRAINT FK_obsahuje_id_aktivita FOREIGN KEY (id_aktivita)
+        REFERENCES aktivita
+        ON DELETE CASCADE
+);
+
+CREATE TABLE stat (
+    kod_statu varchar(255),
+    --Nazev varchar(255)  
+    CONSTRAINT PK_stat PRIMARY KEY (kod_statu)
+);
+
+CREATE TABLE misto (
+    id_misto int,
+    kod_statu varchar(255) CONSTRAINT misto_kod_statu_nn NOT NULL,
+    CONSTRAINT PK_misto PRIMARY KEY (id_misto),
+    --Nazev varchar(255)
+    CONSTRAINT FK_misto_kod_statu FOREIGN KEY (kod_statu)
+        REFERENCES stat
+        ON DELETE CASCADE
+);
+
+CREATE TABLE navstivi (
+    id_navstivi int,
+    id_vylet int CONSTRAINT navstivi_id_vylet_nn NOT NULL,
+    id_misto int CONSTRAINT navstivi_id_misto_nn NOT NULL,
+    CONSTRAINT PK_navstivi PRIMARY KEY (id_navstivi),
+    CONSTRAINT FK_navstivi_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE,
+    CONSTRAINT FK_navstivi_id_misto FOREIGN KEY (id_misto)
+        REFERENCES misto
+        ON DELETE CASCADE
+);
+
+CREATE TABLE vybaveni (
+    id_vybaveni int,
+    --Nazev varchar(255),
+    --Druh varchar(255)
+    CONSTRAINT PK_vybaveni PRIMARY KEY (id_vybaveni)
+);
+
+CREATE TABLE predpoklada (
+    id_predpoklada int,
+    id_vylet int CONSTRAINT predpoklada_id_vylet_nn  NOT NULL,
+    id_vybaveni int CONSTRAINT predpoklada_id_vybaveni_nn  NOT NULL,
+    CONSTRAINT PK_predpoklada PRIMARY KEY (id_predpoklada),
+    CONSTRAINT FK_predpoklada_id_vylet FOREIGN KEY (id_vylet)
+        REFERENCES vylet
+        ON DELETE CASCADE,
+    CONSTRAINT FK_predpoklada_id_vybaveni FOREIGN KEY (id_vybaveni)
+        REFERENCES vybaveni
+        ON DELETE CASCADE
+);
