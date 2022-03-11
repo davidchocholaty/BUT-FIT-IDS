@@ -1,8 +1,0 @@
-? atributy u generalizace specializace
-cascade u drop
-cascade u references
-cizi klic zda not null
-
-zkontrolovat cizi klice a relace
-
-zkontrolovat dle prednasky 4
