@@ -1,7 +1,1 @@
-? atributy u generalizace specializace
-cascade u drop
-cascade u references
-
-zkontrolovat dle prednasky 4
-
 vlozit testovaci data
