@@ -37,9 +37,6 @@ DROP TABLE pojede;
 
 ------------------------- VYTVORENI ----------------------------------
 
--- Nastaveni formatu pro datum a cas
-ALTER SESSION SET NLS_DATE_FORMAT='DD-MON-YYYY HH24:MI';
-
 -- Tabulka Automobil --
 CREATE TABLE automobil (
     registracni_znacka VARCHAR(8), -- maximalne 8 znaku
@@ -53,7 +50,7 @@ CREATE TABLE automobil (
 -- Tabulka Vylet --
 CREATE TABLE vylet (
     id_vylet INT GENERATED AS IDENTITY,
-    popis_programu VARCHAR(8192),
+    popis_programu VARCHAR2(2048),
     ubytovani VARCHAR(1024),
     naklady NUMBER(6) NOT NULL CHECK (naklady BETWEEN 0 AND 1000000), -- mezi 0 a 1000000
     narocnost NUMBER(1) CHECK (narocnost BETWEEN 1 and 5), -- rozsah mezi 1 a 5
@@ -120,9 +117,9 @@ CREATE TABLE uzivatel (
             telefon_3, '^(\+|00)[1-9][0-9 \-\(\)\.]{7,32}$'
         )),
     popis VARCHAR(512),
-    cesta_k_souboru_fotografie VARCHAR(1024)
+    cesta_k_souboru_fotografie VARCHAR(1024) DEFAULT NULL
         CHECK(REGEXP_LIKE(
-            cesta_k_souboru_fotografie, '^\/([A-z0-9-_+]+\/)*([A-z0-9]+\.(jpe?g|png|gif|bmp))$'
+            cesta_k_souboru_fotografie, '^\/([a-z0-9-_+]+\/)*([a-z0-9]+\.(jpe?g|png|gif|bmp))$', 'i'
         )),
     hudba NUMBER(1,0),
     koureni NUMBER(1,0),
@@ -286,11 +283,11 @@ CREATE TABLE prispevek (
     id_vylet INT CONSTRAINT prispevek_id_vylet_NN NOT NULL,
     -- Diskriminator pro rozliseni typu
     typ VARCHAR(8) NOT NULL CHECK (typ IN ('clanek','vlog')),
-    obsah VARCHAR(16384) DEFAULT NULL,
+    obsah VARCHAR(2048) DEFAULT NULL,
     popis VARCHAR(512) DEFAULT NULL,
     cesta_k_souboru_videa VARCHAR(1024) DEFAULT NULL
         CHECK(REGEXP_LIKE(
-                cesta_k_souboru_videa, '^\/([A-z0-9-_+]+\/)*([A-z0-9]+\.(mp4|mkv|wmv|m4v|mov|avi|flv|webm|flac|mka|m4a|aac|ogg))$'
+                cesta_k_souboru_videa, '^\/([a-z0-9-_+]+\/)*([a-z0-9]+\.(mp4|mkv|wmv|m4v|mov|avi|flv|webm|flac|mka|m4a|aac|ogg))$', 'i'
             )),
     CONSTRAINT PK_prispevek PRIMARY KEY (id_prispevek),
     ---- vytvori ----
@@ -410,28 +407,25 @@ INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
                       cesta_k_souboru_fotografie, hudba, koureni,
                       zvirata, komunikace)
 VALUES ('Josef', 'Novák', 'josefnovak@gmail.com', '+420777666555',
-        'Lorem ipsum dolor sit amet, consectetuer adipiscing elit.', '/images/pepa.jpg', 
+        'Lorem ipsum dolor sit amet, consectetuer adipiscing elit.', '/images/Pepa.jpg',
          1, 1, 1, 'Pouze pokud bude zajímavé téma pro konverzaci.');
 
 INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, telefon_2, popis,
-                      cesta_k_souboru_fotografie, hudba, koureni,
-                      zvirata, komunikace)
+                      hudba, koureni, zvirata, komunikace)
 VALUES('Jan', 'Dvořák', 'jandvorak@seznam.cz', '+420724159021', '+420612457891',
-       'Nullam lectus justo, vulputate eget mollis sed, tempor sed magna.', NULL,
+       'Nullam lectus justo, vulputate eget mollis sed, tempor sed magna.',
         1, 0, 0, 'Podle nálady.');
 
 INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
-                      cesta_k_souboru_fotografie, hudba, koureni,
-                      zvirata, komunikace)
+                      hudba, koureni, zvirata, komunikace)
 VALUES('David', 'Chocholatý', 'davidchocholaty@firmy.cz', '+420791546879',
-       'Aliquam id dolor. Mauris dolor felis, sagittis at, luctus sed, aliquam non, tellus.', NULL,
+       'Aliquam id dolor. Mauris dolor felis, sagittis at, luctus sed, aliquam non, tellus.',
         1, 0, 0, 'Rád si cestou popovídám.');
 
 INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
-                      cesta_k_souboru_fotografie, hudba, koureni,
-                      zvirata, komunikace)
+                      hudba, koureni, zvirata, komunikace)
 VALUES('Martin', 'Baláž', 'martinbalaz@email.cz', '+420615754831',
-       'Suspendisse nisl. Phasellus faucibus molestie nisl.', NULL,
+       'Suspendisse nisl. Phasellus faucibus molestie nisl.',
         1, 1, 1, 'Jasně, pokecáme.');
 
 ---------------------- HODNOCENI RIDICE ------------------------------
@@ -492,7 +486,7 @@ INSERT INTO spolujizda (id_uzivatel, registracni_znacka, cas_vyjezdu,
                         casova_flexibilita, zavazadla, pocet_volnych_mist)
 VALUES (4,
         'EL106AC',
-        '01-MAR-2022 17:30',
+        TO_DATE('01-03-2022 17:30', 'DD-MM-YYYY HH24:MI'),
         'Praha hlavní nádraží',
         'Fakulta informačních technologií Vysokého učení technického v Brně',
         150,
@@ -506,7 +500,7 @@ INSERT INTO spolujizda (id_uzivatel, registracni_znacka, cas_vyjezdu,
                         casova_flexibilita, zavazadla, pocet_volnych_mist)
 VALUES (1,
         'DICTATOR',
-        '05-MAR-2022 12:00',
+        TO_DATE('05-03-2022 12:00', 'DD-MM-YYYY HH24:MI'),
         'Masarykovo náměstí, Hradec králové',
         'Alšovo náměstí, Ostrava Poruba',
         300,
@@ -520,7 +514,7 @@ INSERT INTO spolujizda (id_uzivatel, registracni_znacka, cas_vyjezdu,
                         casova_flexibilita, zavazadla, pocet_volnych_mist)
 VALUES (4,
         '4A68244',
-        '07-MAR-2022 9:00',
+        TO_DATE('07-03-2022 9:00', 'DD-MM-YYYY HH24:MI'),
         'Fakulta informačních technologií Vysokého učení technického v Brně',
         'Praha hlavní nádraží',
         150,
@@ -536,7 +530,7 @@ INSERT INTO spolujizda (id_uzivatel, registracni_znacka, id_vylet, cas_vyjezdu,
 VALUES (3,
         'EL106AC',
         1,
-        '09-MAR-2022 14:00',
+        TO_DATE('09-03-2022 14:00', 'DD-MM-YYYY HH24:MI'),
         'Brno Semilasso',
         'Máchovo jezero',
         250,
@@ -547,10 +541,10 @@ VALUES (3,
 
 -------------------------- ZASTAVKA ----------------------------------
 INSERT INTO zastavka (id_spolujizda, misto, poradi, cas_prijezdu)
-VALUES (1, 'Humpolec', 1, '01-MAR-2022 18:30');
+VALUES (1, 'Humpolec', 1, TO_DATE('01-03-2022 18:30', 'DD-MM-YYYY HH24:MI'));
 
 INSERT INTO zastavka (id_spolujizda, misto, poradi, cas_prijezdu)
-VALUES (1, 'Velká Bíteš', 2, '01-MAR-2022 19:30');
+VALUES (1, 'Velká Bíteš', 2, TO_DATE('01-03-2022 19:30', 'DD-MM-YYYY HH24:MI'));
 
 INSERT INTO zastavka (id_spolujizda, misto, poradi)
 VALUES (3, 'Jihlava', 1);
