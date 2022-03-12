@@ -50,7 +50,7 @@ CREATE TABLE automobil (
 -- Tabulka Vylet --
 CREATE TABLE vylet (
     id_vylet INT GENERATED AS IDENTITY,
-    popis_programu VARCHAR2(2048),
+    popis_programu VARCHAR(2048),
     ubytovani VARCHAR(1024),
     naklady NUMBER(6) NOT NULL CHECK (naklady BETWEEN 0 AND 1000000), -- mezi 0 a 1000000
     narocnost NUMBER(1) CHECK (narocnost BETWEEN 1 and 5), -- rozsah mezi 1 a 5
