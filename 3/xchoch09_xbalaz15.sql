@@ -480,6 +480,11 @@ INSERT INTO vylet (id_uzivatel, popis_programu, ubytovani, naklady, narocnost)
 VALUES (4, 'Sed ac dolor sit amet purus malesuada congue. Fusce aliquam vestibulum ipsum. Mauris dolor felis, sagittis at, luctus sed, aliquam non, tellus.',
         'BEST WESTERN PREMIER Hotel International Brno', 7500, 2);
 
+-- Vylet bez ucastniku        
+INSERT INTO vylet (id_uzivatel, popis_programu, ubytovani, naklady, narocnost)
+VALUES (3, 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit.',
+        'Koleje pod Palackého vrchem', 4000, 5);
+
 ------------------------- SPOLUJIZDA ---------------------------------
 INSERT INTO spolujizda (id_uzivatel, registracni_znacka, cas_vyjezdu,
                         nastupni_misto, vystupni_misto, cena, zajizdka,
@@ -698,5 +703,104 @@ VALUES ('soukromy');
 INSERT INTO prispevek (id_uzivatel, id_opravneni, id_vylet, typ, obsah)
 VALUES (2, 1, 1, 'clanek', 'Aenean id metus id velit ullamcorper pulvinar. Phasellus faucibus molestie nisl. Aliquam ornare wisi eu metus.');
 
-INSERT INTO prispevek (id_uzivatel, id_opravneni, id_vylet, typ, popis, cesta_k_souboru_videa)
-VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.', '/videos/vlog.mp4');
+INSERT INTO prispevek (id_uzivatel, id_opravneni, id_vylet, typ, popis, cesta_k_souboru_videa, obsah)
+VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.', '/videos/vlog.mp4', 'Aenean id metus id velit ullamcorper pulvinar. Phasellus faucibus molestie nisl. Aliquam ornare wisi eu metus.');
+
+----------------------------------------------------------------------
+-------------------------- SELECT ----------------------------------
+----------------------------------------------------------------------
+
+-- 2 tabulky --
+-- Kdo vytvořil hodnocení řidiče? --
+SELECT DISTINCT uzivatel.jmeno, uzivatel.prijmeni
+FROM uzivatel
+JOIN hodnoceni_ridice ON hodnoceni_ridice.id_uzivatel = uzivatel.id_uzivatel
+WHERE hodnoceni_ridice.obsah IS NOT NULL;
+-- 2 tabulky --
+-- Které příspěvky vytvořil zadaný uživatel? --
+SELECT prispevek.typ, prispevek.obsah
+FROM prispevek
+JOIN uzivatel ON uzivatel.id_uzivatel = prispevek.id_uzivatel
+WHERE uzivatel.jmeno = 'Jan' AND uzivatel.prijmeni = 'Dvořák';
+-- 3 tabulky--
+-- Kdo všechno řídí dané auto? --
+SELECT uzivatel.jmeno, uzivatel.prijmeni
+FROM uzivatel
+JOIN ridi ON ridi.id_uzivatel = uzivatel.id_uzivatel
+JOIN automobil ON automobil.registracni_znacka = ridi.registracni_znacka 
+WHERE automobil.znacka = 'BMW' AND automobil.oznaceni_modelu ='M760Li xDrive Model V12 Excellence';
+-- 3 tabulky --
+-- Které příspěvky přidal daný uživatel k výletu? --
+SELECT prispevek.typ, prispevek.obsah
+FROM prispevek
+JOIN uzivatel ON uzivatel.id_uzivatel = prispevek.id_uzivatel
+JOIN vylet ON vylet.id_vylet = prispevek.id_vylet
+WHERE uzivatel.jmeno = 'Martin' AND uzivatel.prijmeni = 'Baláž' AND vylet.id_vylet = '1';
+-- GROUP BY --
+-- Kolik spolujízd nabízí nebo zabízeli jednotliví uživatelé? --
+SELECT uzivatel.jmeno, uzivatel.prijmeni, COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+FROM uzivatel
+JOIN spolujizda ON spolujizda.id_uzivatel = uzivatel.id_uzivatel
+GROUP BY spolujizda.id_uzivatel, uzivatel.jmeno, uzivatel.prijmeni
+HAVING COUNT(spolujizda.id_uzivatel) >= 1
+ORDER BY "POCET SPOLUJIZD" DESC;
+-- GROUP BY --
+-- Kolik míst se navštíví na jednotlivých výletech? --
+SELECT vylet.id_vylet, COUNT(misto.id_misto) AS "POCET NAVSTIVENYCH MIST"
+FROM vylet
+JOIN navstivi ON vylet.id_vylet = navstivi.id_vylet
+JOIN misto ON misto.id_misto = navstivi.id_misto
+GROUP BY vylet.id_vylet
+ORDER BY "POCET NAVSTIVENYCH MIST" DESC;
+-- GROUP BY --
+-- Na kolika spolujízdách jela jednotlivá auta? --
+SELECT automobil.znacka, automobil.oznaceni_modelu AS "OZNACENI MODELU", COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+FROM automobil
+JOIN spolujizda ON automobil.registracni_znacka = spolujizda.registracni_znacka
+GROUP BY automobil.znacka, automobil.oznaceni_modelu
+ORDER BY "POCET SPOLUJIZD" DESC;
+
+-- NOT EXISTS --
+-- Které výlety jsou bez aktivity? --
+SELECT vylet.id_vylet, vylet.naklady
+FROM vylet
+WHERE NOT EXISTS(
+    SELECT * 
+    FROM obsahuje 
+    WHERE vylet.id_vylet = obsahuje.id_vylet
+);
+-- NOT EXISTS --
+-- Jaká je registrační značka automobilu, který řídí pouze uživatel Josef Novák? --
+SELECT automobil.registracni_znacka
+FROM automobil
+JOIN ridi ON ridi.registracni_znacka = automobil.registracni_znacka
+JOIN uzivatel ON uzivatel.id_uzivatel = ridi.id_uzivatel
+WHERE uzivatel.jmeno = 'Josef' AND uzivatel.prijmeni = 'Novák' 
+AND NOT EXISTS(
+    SELECT * 
+    FROM ridi
+    WHERE ridi.registracni_znacka = automobil.registracni_znacka 
+    AND uzivatel.jmeno <> 'Josef' 
+    AND uzivatel.prijmeni <> 'Novák'
+);
+-- NOT IN --
+-- Kteří uživatelé se nezůčastnili žádné spolujízdy v březnu 2022? --
+SELECT uzivatel.jmeno, uzivatel.prijmeni
+FROM uzivatel
+WHERE uzivatel.id_uzivatel 
+NOT IN(
+    SELECT ucastni.id_uzivatel
+    FROM ucastni
+    JOIN spolujizda ON ucastni.id_spolujizda = spolujizda.id_spolujizda
+    WHERE spolujizda.cas_vyjezdu BETWEEN TO_DATE('01-03-2022 00:00', 'DD-MM-YYYY HH24:MI') AND TO_DATE('31-03-2022 23:59', 'DD-MM-YYYY HH24:MI')
+);
+
+-- NOT IN --
+-- Na který výlet nepojede žádný uživatel? --
+SELECT vylet.id_vylet, vylet.popis_programu, vylet.ubytovani
+FROM vylet
+WHERE vylet.id_vylet
+NOT IN(
+    SELECT pojede.id_vylet
+    FROM pojede
+);
