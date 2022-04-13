@@ -1,11 +1,11 @@
 ----------------------------------------------------------------------
 --                                                                  --
 -- Soubor: xchoch09_xbalaz15.sql                                    --
--- Vytvoren: 2022-03-12                                             --
+-- Vytvoren: 2022-04-12                                             --
 -- Autori: David Chocholaty (xchoch09), Martin Balaz (xbalaz15)     --
--- Projekt: Projekt pro predmet IDS, cast 2                         --
+-- Projekt: Projekt pro predmet IDS, cast 3                         --
 -- Tema: Zadani c. 66, Spolujizda                                   --
--- Popis: SQL skript pro vytvoreni objektu schematu databaze        --
+-- Popis: SQL skript s dotazy SELECT nad schematem databaze         --
 --                                                                  --
 ----------------------------------------------------------------------
 
@@ -711,26 +711,26 @@ VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut
 ----------------------------------------------------------------------
 
 -- 2 tabulky --
--- Kdo vytvořil hodnocení řidiče? --
+-- Jaké je jméno a příjmení uživatele, který vytvořil hodnocení řidiče? --
 SELECT DISTINCT uzivatel.jmeno, uzivatel.prijmeni
 FROM uzivatel
 JOIN hodnoceni_ridice ON hodnoceni_ridice.id_uzivatel = uzivatel.id_uzivatel
 WHERE hodnoceni_ridice.obsah IS NOT NULL;
 -- 2 tabulky --
--- Které příspěvky vytvořil zadaný uživatel? --
+-- Které příspěvky vytvořil uživatel Jan Dvořák? Zobrazení ve formátu (typ, obsah). --
 SELECT prispevek.typ, prispevek.obsah
 FROM prispevek
 JOIN uzivatel ON uzivatel.id_uzivatel = prispevek.id_uzivatel
 WHERE uzivatel.jmeno = 'Jan' AND uzivatel.prijmeni = 'Dvořák';
 -- 3 tabulky--
--- Kdo všechno řídí dané auto? --
+-- Jméno a příjmení všech uživatelů, kteří řídí dané auto. --
 SELECT uzivatel.jmeno, uzivatel.prijmeni
 FROM uzivatel
 JOIN ridi ON ridi.id_uzivatel = uzivatel.id_uzivatel
 JOIN automobil ON automobil.registracni_znacka = ridi.registracni_znacka 
 WHERE automobil.znacka = 'BMW' AND automobil.oznaceni_modelu ='M760Li xDrive Model V12 Excellence';
 -- 3 tabulky --
--- Které příspěvky přidal daný uživatel k výletu? --
+-- Které příspěvky přidal uživatel Martin Baláž k danému výletu? Zobrazení ve formátu (typ, obsah). --
 SELECT prispevek.typ, prispevek.obsah
 FROM prispevek
 JOIN uzivatel ON uzivatel.id_uzivatel = prispevek.id_uzivatel
@@ -754,14 +754,14 @@ GROUP BY vylet.id_vylet
 ORDER BY "POCET NAVSTIVENYCH MIST" DESC;
 -- GROUP BY --
 -- Na kolika spolujízdách jela jednotlivá auta? --
-SELECT automobil.znacka, automobil.oznaceni_modelu AS "OZNACENI MODELU", COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+SELECT automobil.registracni_znacka AS "REGISTRACNI ZNACKA", automobil.znacka, automobil.oznaceni_modelu AS "OZNACENI MODELU", COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
 FROM automobil
 JOIN spolujizda ON automobil.registracni_znacka = spolujizda.registracni_znacka
-GROUP BY automobil.znacka, automobil.oznaceni_modelu
+GROUP BY automobil.registracni_znacka, automobil.znacka, automobil.oznaceni_modelu
 ORDER BY "POCET SPOLUJIZD" DESC;
 
 -- NOT EXISTS --
--- Které výlety jsou bez aktivity? --
+-- Které výlety jsou bez aktivity? Zobrazení ve formátu (id_vylet, naklady). --
 SELECT vylet.id_vylet, vylet.naklady
 FROM vylet
 WHERE NOT EXISTS(
@@ -796,8 +796,8 @@ NOT IN(
 );
 
 -- NOT IN --
--- Na který výlet nepojede žádný uživatel? --
-SELECT vylet.id_vylet, vylet.popis_programu, vylet.ubytovani
+-- Na který výlet nepojede žádný uživatel?  --
+SELECT vylet.id_vylet, vylet.popis_programu AS "POPIS PROGRAMU", vylet.ubytovani
 FROM vylet
 WHERE vylet.id_vylet
 NOT IN(
