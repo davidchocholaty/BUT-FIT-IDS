@@ -439,6 +439,83 @@ BEGIN
 END;
 /
 
+-- Triger, který zajišťuje, že uživatel nenastoupí na zastávku víckrát v rámci jedné spolujízdy
+CREATE OR REPLACE TRIGGER check_boarding_multiple_times BEFORE
+    INSERT ON nastoupi
+    FOR EACH ROW
+DECLARE
+    count_record NUMBER;
+    actual_carpool NUMBER;
+BEGIN
+    SELECT
+        id_spolujizda
+    INTO
+        actual_carpool
+    FROM
+        zastavka    
+    WHERE
+        zastavka.id_zastavka = :new.id_zastavka;
+
+    SELECT
+        COUNT(*)
+    INTO 
+        count_record
+    FROM
+        nastoupi
+    JOIN
+        zastavka ON nastoupi.id_zastavka = zastavka.id_zastavka
+    JOIN
+        spolujizda ON zastavka.id_spolujizda = spolujizda.id_spolujizda
+    WHERE
+        nastoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = actual_carpool;
+
+    IF
+        (count_record != 0)
+    THEN 
+        raise_application_error(-20203,'Nelze nastoupit na vice zastavkach');
+    END IF;
+
+END;
+/
+
+-- Triger, který zajišťuje, že uživatel nevystoupí na více zastávkách v rámci jedné spolujízdy
+CREATE OR REPLACE TRIGGER check_get_out_multiple_times BEFORE
+    INSERT ON vystoupi
+    FOR EACH ROW
+DECLARE
+    count_record NUMBER;
+    actual_carpool NUMBER;
+BEGIN
+    SELECT
+        id_spolujizda
+    INTO
+        actual_carpool
+    FROM
+        zastavka    
+    WHERE
+        zastavka.id_zastavka = :new.id_zastavka;
+
+    SELECT
+        COUNT(*)
+    INTO 
+        count_record
+    FROM
+        vystoupi
+    JOIN
+        zastavka ON vystoupi.id_zastavka = zastavka.id_zastavka
+    JOIN
+        spolujizda ON zastavka.id_spolujizda = spolujizda.id_spolujizda
+    WHERE
+        vystoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = actual_carpool;
+
+    IF
+        (count_record != 0)
+    THEN 
+        raise_application_error(-20203,'Nelze vystoupit na vice zastavkach');
+    END IF;
+
+END;
+/
 ----------------------------------------------------------------------
 -------------------------- VKLADANI ----------------------------------
 ----------------------------------------------------------------------
@@ -762,11 +839,20 @@ VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut
 
 ---------------------- PREDVEDENI TRIGGERU ----------------------------
 
+-- Triger, který zajišťuje, že spolujízdy se nezúčastní více osob. než je maximální kapacita auta
 INSERT INTO ucastni (id_uzivatel, id_spolujizda)
 VALUES (5, 1);
 
 INSERT INTO ucastni (id_uzivatel, id_spolujizda)
 VALUES (6, 1);
+
+-- Triger, který zajišťuje, že uživatel nenastoupí na zastávku víckrát v rámci jedné spolujízdy
+INSERT INTO nastoupi (id_uzivatel, id_zastavka)
+VALUES (2, 2);
+
+-- Triger, který zajišťuje, že uživatel nevystoupí na více zastávkách v rámci jedné spolujízdy
+INSERT INTO vystoupi (id_uzivatel, id_zastavka)
+VALUES (3, 4);
 
 -------------------------- PROCEDURY ----------------------------------
 
