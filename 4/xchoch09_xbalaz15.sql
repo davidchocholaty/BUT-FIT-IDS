@@ -399,6 +399,47 @@ CREATE TABLE predpoklada (
 );
 
 ----------------------------------------------------------------------
+--------------------------- TRIGERY ----------------------------------
+----------------------------------------------------------------------
+
+-- Triger, který zajišťuje, že spolujízdy se nezúčastní více osob. než je maximální kapacita auta
+CREATE OR REPLACE TRIGGER capacity_check BEFORE
+    INSERT ON ucastni
+    FOR EACH ROW
+DECLARE
+    max_capacity NUMBER;
+    actual_capacity NUMBER;
+BEGIN
+    SELECT
+        COUNT(*)
+    INTO
+        actual_capacity
+    FROM
+        ucastni
+    WHERE
+        ucastni.id_spolujizda = :new.id_spolujizda;
+
+    SELECT
+        maximalni_kapacita
+    INTO 
+        max_capacity
+    FROM
+        automobil
+    NATURAL JOIN
+        spolujizda
+    WHERE
+        spolujizda.id_spolujizda = :new.id_spolujizda;
+
+    IF
+        (actual_capacity = max_capacity)
+    THEN 
+        raise_application_error(-20203,'Do automobilu uz se nikdo nevejde!');
+    END IF;
+
+END;
+/
+
+----------------------------------------------------------------------
 -------------------------- VKLADANI ----------------------------------
 ----------------------------------------------------------------------
 
@@ -428,6 +469,18 @@ INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
 VALUES('Martin', 'Baláž', 'martinbalaz@email.cz', '+420615754831',
        'Suspendisse nisl. Phasellus faucibus molestie nisl.',
         1, 1, 1, 'Jasně, pokecáme.');
+        
+INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
+                      hudba, koureni, zvirata, komunikace)
+VALUES('Adam', 'Svoboda', 'asvoboda@email.cz', '+420465123914',
+       'Suspendisse nisl. Mauris dolor felis, sagittis at. Phasellus faucibus molestie nisl.',
+        1, 1, 1, 'Jak kdy.');
+        
+INSERT INTO uzivatel (jmeno, prijmeni, email, telefon_1, popis,
+                      hudba, koureni, zvirata, komunikace)
+VALUES('Karel', 'Novotny', 'novotnyk@email.cz', '+420945135467',
+       'Aliquam non, tellus. Suspendisse nisl. Phasellus faucibus molestie nisl.',
+        1, 1, 1, 'Vždycky.');
 
 ---------------------- HODNOCENI RIDICE ------------------------------
 INSERT INTO hodnoceni_ridice (id_uzivatel, id_uzivatel_2, obsah, pocet_hvezdicek)
@@ -707,7 +760,15 @@ VALUES (2, 1, 1, 'clanek', 'Aenean id metus id velit ullamcorper pulvinar. Phase
 INSERT INTO prispevek (id_uzivatel, id_opravneni, id_vylet, typ, popis, cesta_k_souboru_videa, obsah)
 VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.', '/videos/vlog.mp4', 'Aenean id metus id velit ullamcorper pulvinar. Phasellus faucibus molestie nisl. Aliquam ornare wisi eu metus.');
 
--------------------------- PROCEDURES -----------------------------------
+---------------------- PREDVEDENI TRIGGERU ----------------------------
+
+INSERT INTO ucastni (id_uzivatel, id_spolujizda)
+VALUES (5, 1);
+
+INSERT INTO ucastni (id_uzivatel, id_spolujizda)
+VALUES (6, 1);
+
+-------------------------- PROCEDURY ----------------------------------
 
 -- Procedura vypíše průměrný počet absolvovaných spolujízd na uživatele (účast)
 CREATE OR REPLACE PROCEDURE avg_count_of_carpools_for_users
