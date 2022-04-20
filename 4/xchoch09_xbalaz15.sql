@@ -706,3 +706,43 @@ VALUES (2, 1, 1, 'clanek', 'Aenean id metus id velit ullamcorper pulvinar. Phase
 
 INSERT INTO prispevek (id_uzivatel, id_opravneni, id_vylet, typ, popis, cesta_k_souboru_videa, obsah)
 VALUES (4, 2, 1, 'vlog', 'Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.', '/videos/vlog.mp4', 'Aenean id metus id velit ullamcorper pulvinar. Phasellus faucibus molestie nisl. Aliquam ornare wisi eu metus.');
+
+-------------------------- PROCEDURES -----------------------------------
+
+-- Procedura vypíše průměrný počet absolvovaných spolujízd na uživatele (účast)
+CREATE OR REPLACE PROCEDURE avg_count_of_carpools_for_users
+AS
+	"count_users" NUMBER;
+	"avg_drive_count_on_user" NUMBER;
+	"count_drives" NUMBER;
+
+BEGIN
+	SELECT COUNT(*) INTO "count_drives" FROM ucastni;
+	SELECT COUNT(*) INTO "count_users" FROM uzivatel;
+
+	"avg_drive_count_on_user" := "count_drives" / "count_users";
+	
+
+	DBMS_OUTPUT.put_line(
+		'There is a total of '
+		|| "count_users" || ' users, '
+		|| "count_drives" || ' and drives. '
+	);
+	DBMS_OUTPUT.put_line(
+		'It is '
+		|| "avg_drive_count_on_user" || ' carpools on user. '
+	);
+
+	EXCEPTION WHEN ZERO_DIVIDE THEN
+	BEGIN
+		IF "count_users" = 0 THEN
+			DBMS_OUTPUT.put_line('There are no users!');
+		END IF;
+
+		IF "count_drives" = 0 THEN
+			DBMS_OUTPUT.put_line('There are no drives!');
+		END IF;
+	END;
+END;
+
+
