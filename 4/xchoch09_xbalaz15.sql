@@ -929,4 +929,80 @@ BEGIN
         );
     END;
 END;
+/
 
+------------------------- EXPLAIN PLAN --------------------------------
+
+-- Kolik spolujízd nabízí nebo zabízeli jednotliví uživatelé? --
+EXPLAIN PLAN FOR
+SELECT uzivatel.jmeno, uzivatel.prijmeni, COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+FROM uzivatel
+JOIN spolujizda ON spolujizda.id_uzivatel = uzivatel.id_uzivatel
+GROUP BY spolujizda.id_uzivatel, uzivatel.jmeno, uzivatel.prijmeni
+HAVING COUNT(spolujizda.id_uzivatel) >= 1
+ORDER BY "POCET SPOLUJIZD" DESC;
+
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+CREATE INDEX spolujizda_id_uzivatel ON spolujizda (id_uzivatel);
+
+EXPLAIN PLAN FOR
+SELECT uzivatel.jmeno, uzivatel.prijmeni, COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+FROM uzivatel
+JOIN spolujizda ON spolujizda.id_uzivatel = uzivatel.id_uzivatel
+GROUP BY spolujizda.id_uzivatel, uzivatel.jmeno, uzivatel.prijmeni
+HAVING COUNT(spolujizda.id_uzivatel) >= 1
+ORDER BY "POCET SPOLUJIZD" DESC;
+
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+
+----------------------- PRISTUPOVA PRAVA ------------------------------
+
+GRANT ALL ON uzivatel TO xbalaz15;
+GRANT ALL ON hodnoceni_ridice TO xbalaz15;
+GRANT ALL ON hodnoceni_spolucestujiciho TO xbalaz15;
+GRANT ALL ON automobil TO xbalaz15;
+GRANT ALL ON spolujizda TO xbalaz15;
+GRANT ALL ON opravneni TO xbalaz15;
+GRANT ALL ON prispevek TO xbalaz15;
+GRANT ALL ON vylet TO xbalaz15;
+GRANT ALL ON druh TO xbalaz15;
+GRANT ALL ON aktivita TO xbalaz15;
+GRANT ALL ON obsahuje TO xbalaz15;
+GRANT ALL ON misto TO xbalaz15;
+GRANT ALL ON stat TO xbalaz15;
+GRANT ALL ON vybaveni TO xbalaz15;
+GRANT ALL ON predpoklada TO xbalaz15;
+GRANT ALL ON ucastni TO xbalaz15;
+GRANT ALL ON nastoupi TO xbalaz15;
+GRANT ALL ON vystoupi TO xbalaz15;
+GRANT ALL ON zastavka TO xbalaz15;
+GRANT ALL ON ridi TO xbalaz15;
+GRANT ALL ON navstivi TO xbalaz15;
+GRANT ALL ON pojede TO xbalaz15;
+
+GRANT EXECUTE ON avg_count_of_carpools_for_users to xbalaz15;
+GRANT EXECUTE ON count_of_users_that_are_tripping to xbalaz15;
+
+-------------------- MATERIALIZOVANY POHLED ---------------------------
+
+DROP MATERIALIZED VIEW carpool_count;
+
+-- Na kolika spolujízdách jela jednotlivá auta? --
+CREATE MATERIALIZED VIEW carpool_count AS
+SELECT automobil.registracni_znacka AS "REGISTRACNI ZNACKA", automobil.znacka, automobil.oznaceni_modelu AS "OZNACENI MODELU", COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+FROM automobil
+JOIN spolujizda ON automobil.registracni_znacka = spolujizda.registracni_znacka
+GROUP BY automobil.registracni_znacka, automobil.znacka, automobil.oznaceni_modelu
+ORDER BY "POCET SPOLUJIZD" DESC;
+
+-- Data v meterializovaném pohledu se neaktualizují
+SELECT * FROM carpool_count;
+
+UPDATE automobil SET automobil.oznaceni_modelu = 'Opel' WHERE automobil.registracni_znacka = 'EL106AC';
+
+SELECT * FROM carpool_count;
+
+------------------ PRISTUPOVA PRAVA PRO POHLED ------------------------
+GRANT ALL ON carpool_count TO xbalaz15;
