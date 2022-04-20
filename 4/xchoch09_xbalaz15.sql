@@ -744,5 +744,42 @@ BEGIN
 		END IF;
 	END;
 END;
+/
+-- Procedura vypíše počet uživatelů, kteří pojedou na daný výlet
+CREATE OR REPLACE PROCEDURE count_of_users_that_are_tripping("trip_id" IN NUMBER)
+AS
+    "all_users" NUMBER;
+    "target_users" NUMBER;
+    "id_vylet_tmp" pojede.id_vylet%TYPE;
+    "target_id_vylet" pojede.id_vylet%TYPE;
+    CURSOR "cursor_trips" IS SELECT id_vylet FROM pojede;
+BEGIN
+    SELECT COUNT(*) INTO "all_users" FROM uzivatel;
 
+    "target_users" := 0;
+
+    OPEN "cursor_trips";
+    LOOP
+        FETCH "cursor_trips" INTO "id_vylet_tmp";
+
+        EXIT WHEN "cursor_trips"%NOTFOUND;
+
+        IF "id_vylet_tmp" = "trip_id" THEN
+            "target_users" := "target_users" + 1;
+        END IF;
+    END LOOP;
+    CLOSE "cursor_trips";
+
+    DBMS_OUTPUT.put_line(
+        'Na výlet ' || "trip_id" ||  ' pojede ' ||  "target_users"
+        || ' uživatelů z dohromady ' || "all_users" || ' uživatelů.'
+    );
+
+    EXCEPTION WHEN NO_DATA_FOUND THEN
+    BEGIN
+        DBMS_OUTPUT.put_line(
+            'Tento výlet: ' || "trip_id" || ' Neexistuje!'
+        );
+    END;
+END;
 
