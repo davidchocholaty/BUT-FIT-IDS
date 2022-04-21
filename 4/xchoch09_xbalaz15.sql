@@ -403,17 +403,17 @@ CREATE TABLE predpoklada (
 ----------------------------------------------------------------------
 
 -- Triger, který zajišťuje, že spolujízdy se nezúčastní více osob. než je maximální kapacita auta
-CREATE OR REPLACE TRIGGER capacity_check BEFORE
+CREATE OR REPLACE TRIGGER kontrola_kapacity BEFORE
     INSERT ON ucastni
     FOR EACH ROW
 DECLARE
-    max_capacity NUMBER;
-    actual_capacity NUMBER;
+    maximalni_kapacita NUMBER;
+    aktualni_kapacita NUMBER;
 BEGIN
     SELECT
         COUNT(*)
     INTO
-        actual_capacity
+        aktualni_kapacita
     FROM
         ucastni
     WHERE
@@ -422,7 +422,7 @@ BEGIN
     SELECT
         maximalni_kapacita
     INTO 
-        max_capacity
+        maximalni_kapacita
     FROM
         automobil
     NATURAL JOIN
@@ -431,7 +431,7 @@ BEGIN
         spolujizda.id_spolujizda = :new.id_spolujizda;
 
     IF
-        (actual_capacity = max_capacity)
+        (aktualni_kapacita = maximalni_kapacita)
     THEN 
         raise_application_error(-20203,'Do automobilu uz se nikdo nevejde!');
     END IF;
@@ -440,17 +440,17 @@ END;
 /
 
 -- Triger, který zajišťuje, že uživatel nenastoupí na zastávku víckrát v rámci jedné spolujízdy
-CREATE OR REPLACE TRIGGER check_boarding_multiple_times BEFORE
+CREATE OR REPLACE TRIGGER kontrola_vicenasobneho_nastoupeni BEFORE
     INSERT ON nastoupi
     FOR EACH ROW
 DECLARE
-    count_record NUMBER;
-    actual_carpool NUMBER;
+    pocet_zaznamu NUMBER;
+    aktualni_spolujizda NUMBER;
 BEGIN
     SELECT
         id_spolujizda
     INTO
-        actual_carpool
+        aktualni_spolujizda
     FROM
         zastavka    
     WHERE
@@ -459,7 +459,7 @@ BEGIN
     SELECT
         COUNT(*)
     INTO 
-        count_record
+        pocet_zaznamu
     FROM
         nastoupi
     JOIN
@@ -467,10 +467,10 @@ BEGIN
     JOIN
         spolujizda ON zastavka.id_spolujizda = spolujizda.id_spolujizda
     WHERE
-        nastoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = actual_carpool;
+        nastoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = aktualni_spolujizda;
 
     IF
-        (count_record != 0)
+        (pocet_zaznamu != 0)
     THEN 
         raise_application_error(-20203,'Nelze nastoupit na vice zastavkach');
     END IF;
@@ -479,17 +479,17 @@ END;
 /
 
 -- Triger, který zajišťuje, že uživatel nevystoupí na více zastávkách v rámci jedné spolujízdy
-CREATE OR REPLACE TRIGGER check_get_out_multiple_times BEFORE
+CREATE OR REPLACE TRIGGER kontrola_vicenasobneho_vystoupeni BEFORE
     INSERT ON vystoupi
     FOR EACH ROW
 DECLARE
-    count_record NUMBER;
-    actual_carpool NUMBER;
+    pocet_zaznamu NUMBER;
+    aktualni_spolujizda NUMBER;
 BEGIN
     SELECT
         id_spolujizda
     INTO
-        actual_carpool
+        aktualni_spolujizda
     FROM
         zastavka    
     WHERE
@@ -498,7 +498,7 @@ BEGIN
     SELECT
         COUNT(*)
     INTO 
-        count_record
+        pocet_zaznamu
     FROM
         vystoupi
     JOIN
@@ -506,10 +506,10 @@ BEGIN
     JOIN
         spolujizda ON zastavka.id_spolujizda = spolujizda.id_spolujizda
     WHERE
-        vystoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = actual_carpool;
+        vystoupi.id_uzivatel = :new.id_uzivatel AND spolujizda.id_spolujizda = aktualni_spolujizda;
 
     IF
-        (count_record != 0)
+        (pocet_zaznamu != 0)
     THEN 
         raise_application_error(-20203,'Nelze vystoupit na vice zastavkach');
     END IF;
@@ -857,82 +857,81 @@ VALUES (3, 4);
 -------------------------- PROCEDURY ----------------------------------
 
 -- Procedura vypíše průměrný počet absolvovaných spolujízd na uživatele (účast)
-CREATE OR REPLACE PROCEDURE avg_count_of_carpools_for_users
+CREATE OR REPLACE PROCEDURE prumerny_pocet_jizd_na_uzivatele
 AS
-	"count_users" NUMBER;
-	"avg_drive_count_on_user" NUMBER;
-	"count_drives" NUMBER;
+	"pocet_uzivatelu" NUMBER;
+	"prumerny_pocet_na_uzivatele" NUMBER;
+	"pocet_spolujizd" NUMBER;
 
 BEGIN
-	SELECT COUNT(*) INTO "count_drives" FROM ucastni;
-	SELECT COUNT(*) INTO "count_users" FROM uzivatel;
+	SELECT COUNT(*) INTO "pocet_spolujizd" FROM ucastni;
+	SELECT COUNT(*) INTO "pocet_uzivatelu" FROM uzivatel;
 
-	"avg_drive_count_on_user" := "count_drives" / "count_users";
+	"prumerny_pocet_na_uzivatele" := "pocet_spolujizd" / "pocet_uzivatelu";
 	
 
 	DBMS_OUTPUT.put_line(
 		'Celkem je '
-		|| "count_users" || ' uživatelů a '
-		|| "count_drives" || ' spolujízd. '
+		|| "pocet_uzivatelu" || ' uživatelů a '
+		|| "pocet_spolujizd" || ' spolujízd. '
 	);
 	DBMS_OUTPUT.put_line(
 		'Uživatel systému se zúčastní průměrně '
-		|| "avg_drive_count_on_user" || ' spolujízd. '
+		|| "prumerny_pocet_na_uzivatele" || ' spolujízd. '
 	);
 
 	EXCEPTION WHEN ZERO_DIVIDE THEN
 	BEGIN
-		IF "count_users" = 0 THEN
-			DBMS_OUTPUT.put_line('There are no users!');
+		IF "pocet_uzivatelu" = 0 THEN
+			DBMS_OUTPUT.put_line('V systemu nejsou zadni uzivatele!');
 		END IF;
 
-		IF "count_drives" = 0 THEN
-			DBMS_OUTPUT.put_line('There are no drives!');
+		IF "pocet_spolujizd" = 0 THEN
+			DBMS_OUTPUT.put_line('V systemu nejsou zadne spolujizdy!');
 		END IF;
 	END;
 END;
 /
 -- Procedura vypíše počet uživatelů, kteří pojedou na daný výlet
-CREATE OR REPLACE PROCEDURE count_of_users_that_are_tripping("trip_id" IN NUMBER)
+CREATE OR REPLACE PROCEDURE pocet_uzivatelu_jedoucich_na_vylet("arg_id_vylet" IN NUMBER)
 AS
-    "all_users" NUMBER;
-    "target_users" NUMBER;
-    "id_vylet_tmp" pojede.id_vylet%TYPE;
-    "target_id_vylet" pojede.id_vylet%TYPE;
-    CURSOR "cursor_trips" IS SELECT id_vylet FROM pojede;
+    "vsichni_uzivatele" NUMBER;
+    "cilovi_uzivatele" NUMBER;
+    "id_vylet_tmp" pojede.id_vylet%TYPE;    
+    CURSOR "kurzor_vylet" IS SELECT id_vylet FROM pojede;
 BEGIN
-    SELECT COUNT(*) INTO "all_users" FROM uzivatel;
+    SELECT COUNT(*) INTO "vsichni_uzivatele" FROM uzivatel;
 
-    "target_users" := 0;
+    "cilovi_uzivatele" := 0;
 
-    OPEN "cursor_trips";
+    OPEN "kurzor_vylet";
     LOOP
-        FETCH "cursor_trips" INTO "id_vylet_tmp";
+        FETCH "kurzor_vylet" INTO "id_vylet_tmp";
 
-        EXIT WHEN "cursor_trips"%NOTFOUND;
+        EXIT WHEN "kurzor_vylet"%NOTFOUND;
 
-        IF "id_vylet_tmp" = "trip_id" THEN
-            "target_users" := "target_users" + 1;
+        IF "id_vylet_tmp" = "arg_id_vylet" THEN
+            "cilovi_uzivatele" := "cilovi_uzivatele" + 1;
         END IF;
     END LOOP;
-    CLOSE "cursor_trips";
+    CLOSE "kurzor_vylet";
 
     DBMS_OUTPUT.put_line(
-        'Na výlet ' || "trip_id" ||  ' pojede ' ||  "target_users"
-        || ' uživatelů z dohromady ' || "all_users" || ' uživatelů.'
+        'Na výlet ' || "arg_id_vylet" ||  ' pojede ' ||  "cilovi_uzivatele"
+        || ' uživatelů z dohromady ' || "vsichni_uzivatele" || ' uživatelů.'
     );
 
     EXCEPTION WHEN NO_DATA_FOUND THEN
     BEGIN
         DBMS_OUTPUT.put_line(
-            'Tento výlet: ' || "trip_id" || ' Neexistuje!'
+            'Tento výlet: ' || "arg_id_vylet" || ' Neexistuje!'
         );
     END;
 END;
 /
 
-EXEC avg_count_of_carpools_for_users ();
-EXEC count_of_users_that_are_tripping (1);
+EXEC prumerny_pocet_jizd_na_uzivatele ();
+EXEC pocet_uzivatelu_jedoucich_na_vylet (1);
 
 ------------------------- EXPLAIN PLAN --------------------------------
 
@@ -985,17 +984,17 @@ GRANT ALL ON ridi TO xbalaz15;
 GRANT ALL ON navstivi TO xbalaz15;
 GRANT ALL ON pojede TO xbalaz15;
 
-GRANT EXECUTE ON avg_count_of_carpools_for_users to xbalaz15;
-GRANT EXECUTE ON count_of_users_that_are_tripping to xbalaz15;
+GRANT EXECUTE ON prumerny_pocet_jizd_na_uzivatele to xbalaz15;
+GRANT EXECUTE ON pocet_uzivatelu_jedoucich_na_vylet to xbalaz15;
 
 -------------------- MATERIALIZOVANY POHLED ---------------------------
 
-DROP MATERIALIZED VIEW carpool_count;
+DROP MATERIALIZED VIEW pocet_spolujizd;
 
 CREATE MATERIALIZED VIEW LOG ON automobil WITH PRIMARY KEY, ROWID(maximalni_kapacita) INCLUDING NEW VALUES;
 
 -- Výpis aut s kapacitou větší jak 3 místa (pro pasažéry). --
-CREATE MATERIALIZED VIEW carpool_count 
+CREATE MATERIALIZED VIEW pocet_spolujizd
 CACHE
 BUILD IMMEDIATE
 REFRESH FAST ON COMMIT
@@ -1006,13 +1005,11 @@ FROM automobil
 WHERE maximalni_kapacita > 3;
 
 ------------------ PRISTUPOVA PRAVA PRO POHLED ------------------------
-GRANT ALL ON carpool_count TO xbalaz15;
+GRANT ALL ON pocet_spolujizd TO xbalaz15;
 
 ------------------------ UKAZKA POHLEDU -------------------------------
--- Data v meterializovaném pohledu se neaktualizují
-SELECT * FROM carpool_count;
+SELECT * FROM pocet_spolujizd;
 
---UPDATE automobil SET automobil.oznaceni_modelu = 'Opel' WHERE automobil.registracni_znacka = 'EL106AC';
 INSERT INTO automobil (registracni_znacka, znacka, oznaceni_modelu, maximalni_kapacita)
 VALUES ('4A57192', 'Lamborgini', 'Huracan Evo Spyder', 3);
 
@@ -1021,4 +1018,4 @@ VALUES ('5J72172', 'Volkswagen', 'Caravelle 2.5TDI 75kW MINIBUS', 6);
 
 COMMIT;
 
-SELECT * FROM carpool_count;
+SELECT * FROM pocet_spolujizd;
