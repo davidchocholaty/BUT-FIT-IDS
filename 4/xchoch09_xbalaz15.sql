@@ -871,13 +871,13 @@ BEGIN
 	
 
 	DBMS_OUTPUT.put_line(
-		'There is a total of '
-		|| "count_users" || ' users, '
-		|| "count_drives" || ' and drives. '
+		'Celkem je '
+		|| "count_users" || ' uživatelů a '
+		|| "count_drives" || ' spolujízd. '
 	);
 	DBMS_OUTPUT.put_line(
-		'It is '
-		|| "avg_drive_count_on_user" || ' carpools on user. '
+		'Uživatel systému se zúčastní průměrně '
+		|| "avg_drive_count_on_user" || ' spolujízd. '
 	);
 
 	EXCEPTION WHEN ZERO_DIVIDE THEN
@@ -930,6 +930,9 @@ BEGIN
     END;
 END;
 /
+
+EXEC avg_count_of_carpools_for_users ();
+EXEC count_of_users_that_are_tripping (1);
 
 ------------------------- EXPLAIN PLAN --------------------------------
 
@@ -989,20 +992,33 @@ GRANT EXECUTE ON count_of_users_that_are_tripping to xbalaz15;
 
 DROP MATERIALIZED VIEW carpool_count;
 
--- Na kolika spolujízdách jela jednotlivá auta? --
-CREATE MATERIALIZED VIEW carpool_count AS
-SELECT automobil.registracni_znacka AS "REGISTRACNI ZNACKA", automobil.znacka, automobil.oznaceni_modelu AS "OZNACENI MODELU", COUNT(spolujizda.id_spolujizda) AS "POCET SPOLUJIZD"
+CREATE MATERIALIZED VIEW LOG ON automobil WITH PRIMARY KEY, ROWID(maximalni_kapacita) INCLUDING NEW VALUES;
+
+-- Výpis aut s kapacitou větší jak 3 místa (pro pasažéry). --
+CREATE MATERIALIZED VIEW carpool_count 
+CACHE
+BUILD IMMEDIATE
+REFRESH FAST ON COMMIT
+ENABLE QUERY REWRITE
+AS
+SELECT automobil.registracni_znacka, automobil.znacka, automobil.oznaceni_modelu, automobil.maximalni_kapacita
 FROM automobil
-JOIN spolujizda ON automobil.registracni_znacka = spolujizda.registracni_znacka
-GROUP BY automobil.registracni_znacka, automobil.znacka, automobil.oznaceni_modelu
-ORDER BY "POCET SPOLUJIZD" DESC;
-
--- Data v meterializovaném pohledu se neaktualizují
-SELECT * FROM carpool_count;
-
-UPDATE automobil SET automobil.oznaceni_modelu = 'Opel' WHERE automobil.registracni_znacka = 'EL106AC';
-
-SELECT * FROM carpool_count;
+WHERE maximalni_kapacita > 3;
 
 ------------------ PRISTUPOVA PRAVA PRO POHLED ------------------------
 GRANT ALL ON carpool_count TO xbalaz15;
+
+------------------------ UKAZKA POHLEDU -------------------------------
+-- Data v meterializovaném pohledu se neaktualizují
+SELECT * FROM carpool_count;
+
+--UPDATE automobil SET automobil.oznaceni_modelu = 'Opel' WHERE automobil.registracni_znacka = 'EL106AC';
+INSERT INTO automobil (registracni_znacka, znacka, oznaceni_modelu, maximalni_kapacita)
+VALUES ('4A57192', 'Lamborgini', 'Huracan Evo Spyder', 3);
+
+INSERT INTO automobil (registracni_znacka, znacka, oznaceni_modelu, maximalni_kapacita)
+VALUES ('5J72172', 'Volkswagen', 'Caravelle 2.5TDI 75kW MINIBUS', 6);
+
+COMMIT;
+
+SELECT * FROM carpool_count;
