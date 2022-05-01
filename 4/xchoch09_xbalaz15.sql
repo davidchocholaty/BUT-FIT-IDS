@@ -439,7 +439,7 @@ BEGIN
 END;
 /
 
--- Triger, který zajišťuje, že uživatel nenastoupí na zastávku víckrát v rámci jedné spolujízdy
+-- Triger, který zajišťuje, že uživatel nenastoupí na více zastávkách v rámci jedné spolujízdy
 CREATE OR REPLACE TRIGGER kontrola_vicenasobneho_nastoupeni BEFORE
     INSERT ON nastoupi
     FOR EACH ROW
